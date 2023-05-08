@@ -10,18 +10,42 @@ case "$1" in
     preprocess)
         #preprocess code
         echo "preprocess time"
+        
+        
+        
+        # removes all characters after a , / or \ in the fifth field
+ 
         # cuts off non-needed fields
-        #sed -i 's/\([^,\/]*\).*/\1/' "$2"
-        cleantype=$(awk 'BEGIN{FS=OFS="\t"} {sub(/[,\/].*/, "", $5)} 1' $2 > "temp.tsv")
+        cut --complement -f6,7 "$2" | awk '{print}' > mid.tsv
 
-        cutoff=$(cut --complement -f6,7 "temp.tsv" | awk '{print}')
-        echo $cutoff
+        awk 'BEGIN{FS=OFS="\t"} {sub(/[,\/].*/, "", $5)} 1' mid.tsv > "temp.tsv"
+
+        awk 'BEGIN{FS=OFS="\t"} {
+            split($4, date, /[\/]/)
+            month = date[1]
+            year = date[3]
+            $(6) = month
+            $(7) = year
+            print
+        }' temp.tsv > Clean.tsv
+
+        echo Clean.tsv > stdout
+        
+        #rm mid.tsv temp.tsv
+        
+        exit 1
+        
+        #echo $cutoff
+
         ;;
     breaches_per_month)
         echo "breach time"
+        cut -f4 "$2" | awk '{print}'
+
+        
         ;;
     *)
-        echo "Usage: cyber_breaches preprocess or breaches_per_month"
+        echo "Usage: cyber_breaches [preprocess OR breaches_per_month] [filename]"
         exit 1
         ;;
 
