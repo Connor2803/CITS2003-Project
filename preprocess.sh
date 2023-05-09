@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# check argc
+if [ "$#" -ne 1 ]; then
+    echo "Usage: preprocess [filename]"
+    exit 1
+fi
+
 # check if input file exists
 if [[ ! -f $1 ]]; then
     echo "Error: File does not exist or is zero-length"
