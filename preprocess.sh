@@ -1,17 +1,15 @@
 #!/bin/bash
 
 # check if input file exists
-if [[ ! -f $2 ]]; then
+if [[ ! -f $1 ]]; then
     echo "Error: File does not exist or is zero-length"
     exit 1
 fi
 
-case "$1" in
-    preprocess)
         # Preprocess driver code
  
         # Cuts off non-needed fields
-        cut --complement -f6,7 "$2" | awk '{print}' > mid.tsv
+        cut --complement -f6,7 "$1" | awk '{print}' > mid.tsv
 
         # Removes all characters after a , / or \ in the fifth field
         awk ' {
@@ -48,23 +46,4 @@ case "$1" in
         rm mid.tsv temp.tsv Clean.tsv
         
         exit 1
-        
-        #echo $cutoff
 
-        ;;
-    breaches_per_month)
-        echo "breach time"
-        cut -f4 "$2" | awk '{print}'
-
-        
-        ;;
-    *)
-        echo "Usage: cyber_breaches [preprocess OR breaches_per_month] [filename]"
-        exit 1
-        ;;
-
-esac
-
-input=$2
-
-#echo $(cat $input)
