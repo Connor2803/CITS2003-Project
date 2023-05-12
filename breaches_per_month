@@ -2,39 +2,30 @@
 
 # check argc
 if [ "$#" -ne 1 ]; then
-    echo "Usage: breaches_per_month [filename]"
+    echo "Usage: breaches_per_month [filename]" > "/dev/stderr"
     exit 1
 fi
 
 # check if input file exists
 if [[ ! -f $1 ]]; then
-    echo "Error: File does not exist or is zero-length"
+    echo "Error: File does not exist or is zero-length" > "/dev/stderr"
     exit 1
 fi
 
-# Analysis driver code
-cut -f6 "$1" | sort | uniq -c | sort -k2n | awk '{print}' > prelim.txt
 
-sed '1d' prelim.txt > data.txt
-
-
-awk ' {
+cut -f6 "$1" | sort | uniq -c | sort -k2n | awk '{print}' | sed '1d' | awk ' {
     FS=OFS=" "
     split("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec", months, " ")
     month = $(2)
     $(2) = months[month]
-} 1' data.txt > "temp.txt"
-
-awk '{
+} 1' | awk '{
         temp = $1
         $1 = $2
         $2 = temp
-        print
-    }' temp.txt > almostdone.txt
+        print > "almostdone.txt"
+    }' 
 
-sort -k2n almostdone.txt | awk '{print}' > sorteddata.txt
-
-awk ' {
+sort -k2n almostdone.txt | awk '{print}' | awk ' {
     data[NR-1] = $2
     months[NR-1] = $1
 } END {
@@ -61,26 +52,23 @@ awk ' {
 
     #MAD = (meddata[5] + meddata[6])/2
     #print "MAD is " MAD
-}' sorteddata.txt > meddata.txt
+}' almostdone.txt > meddata.txt
 
 cut -f 1 meddata.txt | head -n 1 | awk '{print}' > median.txt
 median=$(cat median.txt)
 
 sed -i '1d' meddata.txt
 
-sort -k1n meddata.txt | awk '{print}' > finaldata.txt
-
-
-awk ' {
+sort -k1n meddata.txt | awk '{print}' | awk ' {
     data[NR-1] = $1
 } END {
     MAD = (data[5] + data[6])/2
-    print MAD
-}' finaldata.txt > MAD.txt
+    print MAD > "MAD.txt"
+}' 
 
 MAD=$(cat MAD.txt)
 
-echo $median $MAD
+echo $median $MAD > "/dev/stdout"
 
 awk -v MAD="$MAD" -v median="$median" ' {
     months[NR-1] = $1
@@ -97,11 +85,9 @@ awk -v MAD="$MAD" -v median="$median" ' {
     }
 }' almostdone.txt > output.txt
 
-echo $(cat output.txt)
+echo $(cat output.txt) > "/dev/stdout"
 
-rm prelim.txt data.txt temp.txt finaldata.txt MAD.txt meddata.txt median.txt output.txt sorteddata.txt almostdone.txt
+rm MAD.txt meddata.txt median.txt output.txt almostdone.txt
 
-#cut -f6 "$1" | sort | uniq -c | sort -nr | head -1 | awk '{print "State with greatest number of incidents is: "$2" with count "$1}' ;;
 
-        
 exit 0
