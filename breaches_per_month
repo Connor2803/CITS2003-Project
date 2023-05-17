@@ -68,7 +68,7 @@ sort -k1n meddata.txt | awk '{print}' | awk ' {
 
 MAD=$(cat MAD.txt)
 
-echo $median $MAD > "/dev/stdout"
+echo "Median: " $median " MAD: " $MAD > "medianmad.txt"
 
 awk -v MAD="$MAD" -v median="$median" ' {
     months[NR-1] = $1
@@ -85,9 +85,11 @@ awk -v MAD="$MAD" -v median="$median" ' {
     }
 }' almostdone.txt > output.txt
 
-echo $(cat output.txt) > "/dev/stdout"
 
-rm MAD.txt meddata.txt median.txt output.txt almostdone.txt
+
+awk '{print}' medianmad.txt output.txt
+
+rm MAD.txt meddata.txt median.txt output.txt almostdone.txt medianmad.txt
 
 
 exit 0
