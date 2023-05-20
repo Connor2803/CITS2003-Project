@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Created by Connor Grayden (23349066)
+
 # check argc
 if [ "$#" -ne 1 ]; then
     echo "Usage: preprocess [filename]" > "/dev/stderr"
