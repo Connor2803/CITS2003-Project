@@ -2,6 +2,9 @@
 
 # Created by Connor Grayden (23349066)
 
+
+# Any erroneous lines will be removed and an error will be output to stderr at the top of the output of preprocess
+
 # check argc
 if [ "$#" -ne 1 ]; then
     echo "Usage: preprocess [filename]" > "/dev/stderr"
@@ -14,44 +17,101 @@ if [[ ! -f $1 ]]; then
     exit 1
 fi
 
-        # Cuts off non-needed fields
-        cut --complement -f6,7 "$1" | awk '{print}' | 
+# Cuts off non-needed fields
+cut --complement -f6,7 "$1" | awk '{print}' | 
 
-        awk ' {
-                FS=OFS="\t"
+awk ' 
+    BEGIN{badLinecount = 0}
+    {
+        FS=OFS="\t"
 
-                # Removing unnecessary information in the Type_of_Breach field
-                sub(/[,\/].*/, "", $5)
+        # Removing unnecessary information in the Type_of_Breach field
+        sub(/[,\/].*/, "", $5)
 
-                # Splitting and assigning the values for the date
-                split($4, date, /[\/]/)
-                month = date[1]
-                day = date[2]
-                year = date[3]
+        # Splitting and assigning the values for the date
+        split($4, date, /[\/]/)
+        month = date[1]
+        day = date[2]
+        year = date[3]
+    
 
-                # If the month starts with a 0, remove it
-                if (substr(month,1,1) == "0")
-                    $(6) = substr(month,2,2)
-                else
-                    $(6) = month
+        # Check if the month is within the range of 1-12 and the year is positive
+        if (month >= 1 && month <= 12 && year > 0 && day <= 31 && day >= 1) {
 
-                # Fixing the years if they are only 2 digits
-                if (length(year) == 2)
-                    if (year > 70)
-                        $(7) = "19" year
+            # Check if the state is only letters, lowercase is accepted
+            if (match($2, /^[[:alpha:]]{2}$/)) {
+
+                # Check if the individuals affected is only numeric
+                if ($3 ~ /^[0-9]+$/) {
+
+                    # If the month starts with a 0, remove it
+                    if (substr(month,1,1) == "0")
+                        $(6) = substr(month,2,2)
                     else
-                        $(7) = "20" year
-                # If the dates are a range, only take the first year
-                else
-                    $(7) = substr(year, 1, 4)
-                print}' > Clean.tsv
+                        $(6) = month
 
-        # Finalises the header line
-        sed -i '1s/.*/Name_of_Covered_Entity\tState\tIndividuals_Affected\tDate_of_Breach\tType_of_Breach\tMonth\tYear/' Clean.tsv
+                    # Fixing the years if they are only 2 digits
+                    if (length(year) == 2)
+                        if (year > 70)
+                            $(7) = "19" year
+                        else
+                            $(7) = "20" year
 
-        awk '{print}' Clean.tsv > "/dev/stdout"
-        
-        rm Clean.tsv
-        
-        exit 0
+                    # If the dates are a range, only take the first year
+                    else
+                        $(7) = substr(year, 1, 4)
+                    print
+                }
+                else{ # Invalid state
+                    if (NR != 1){
+                        badLine[badLinecount] = NR
+                        badReason[badLinecount] = 1
+                        badLinecount = badLinecount + 1
+                    }
+                }
+            } 
+            else{ # Invalid individuals affected
+                if (NR != 1 && badLine[badLinecount - 1] != NR){
+                    badLine[badLinecount] = NR
+                    badReason[badLinecount] = 0
+                    badLinecount = badLinecount + 1
+                }
+            }
+        }
+        else{ # Invalid date
+            # Bad reasons: Invalid state = 0, Invalid individuals affected = 1, Invalid date = 2
 
+            if (NR != 1 && badLine[badLinecount - 1] != NR){
+                badLine[badLinecount] = NR
+                badReason[badLinecount] = 2
+                badLinecount = badLinecount + 1
+            }
+        }
+    }
+        END {  
+            for (i=0;i<badLinecount;i++){
+                    switch (badReason[i]){
+                    case 0:
+                        reason = "state"
+                        break
+                    case 1:
+                        reason = "individuals affected"
+                        break
+                    case 2:
+                        reason = "date"
+                        break
+                }   
+                print "Error: Invalid line at line " badLine[i] ", Invalid " reason > "/dev/stderr"
+            }
+    }' > Clean.tsv
+
+
+
+# Finalizes the header line
+sed -i '1s/.*/Name_of_Covered_Entity\tState\tIndividuals_Affected\tDate_of_Breach\tType_of_Breach\tMonth\tYear/' Clean.tsv
+
+awk '{print}' Clean.tsv > "/dev/stdout"
+
+rm Clean.tsv
+
+exit 0

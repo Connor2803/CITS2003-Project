@@ -12,7 +12,7 @@ if [[ ! -f $1 ]]; then
     exit 1
 fi
 
-
+# Returns a space separated set of month and number of breaches
 cut -f6 "$1" | sort | uniq -c | sort -k2n | awk '{print}' | sed '1d' | awk ' {
     FS=OFS=" "
     split("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec", months, " ")
@@ -22,10 +22,12 @@ cut -f6 "$1" | sort | uniq -c | sort -k2n | awk '{print}' | sed '1d' | awk ' {
         temp = $1
         $1 = $2
         $2 = temp
-        print > "almostdone.txt"
+        print > "splitData.txt"
     }' 
 
-sort -k2n almostdone.txt | awk '{print}' | awk ' {
+
+# Returns the median of the dataset, then after that space separated month subtract median (month-median)
+sort -k2n splitData.txt | awk '{print}' | awk ' {
     data[NR-1] = $2
     months[NR-1] = $1
 } END {
@@ -44,22 +46,26 @@ sort -k2n almostdone.txt | awk '{print}' | awk ' {
         value = data[i] - median
         new = value
         if (value < 0)
-            meddata[i] = value * -1
+            monthMedians[i] = value * -1
         else
-            meddata[i] = value
-        print meddata[i]
+            monthMedians[i] = value
+        print monthMedians[i]
     }
 
-    #MAD = (meddata[5] + meddata[6])/2
+    #MAD = (monthMedians[5] + monthMedians[6])/2
     #print "MAD is " MAD
-}' almostdone.txt > meddata.txt
+}' splitData.txt > monthMedians.txt
 
-cut -f 1 meddata.txt | head -n 1 | awk '{print}' > median.txt
+
+# Retrieving the median from the monthMedians file
+cut -f 1 monthMedians.txt | head -n 1 | awk '{print}' > median.txt
 median=$(cat median.txt)
 
-sed -i '1d' meddata.txt
+# Removing the overall median so monthMedians is just the month-medians
+sed -i '1d' monthMedians.txt
 
-sort -k1n meddata.txt | awk '{print}' | awk ' {
+# Returning the MAD by getting the median of that data set
+sort -k1n monthMedians.txt | awk '{print}' | awk ' {
     data[NR-1] = $1
 } END {
     MAD = (data[5] + data[6])/2
@@ -68,7 +74,8 @@ sort -k1n meddata.txt | awk '{print}' | awk ' {
 
 MAD=$(cat MAD.txt)
 
-echo "Median: " $median " MAD: " $MAD > "medianmad.txt"
+
+echo "Median: " $median " MAD: " $MAD > "medianMADoutput.txt"
 
 awk -v MAD="$MAD" -v median="$median" ' {
     months[NR-1] = $1
@@ -83,13 +90,10 @@ awk -v MAD="$MAD" -v median="$median" ' {
         else
             print months[i],data[i],"++"
     }
-}' almostdone.txt > output.txt
+}' splitData.txt > outputData.txt
 
+awk '{print}' medianMADoutput.txt outputData.txt  > "/dev/stdout"
 
-
-awk '{print}' medianmad.txt output.txt
-
-rm MAD.txt meddata.txt median.txt output.txt almostdone.txt medianmad.txt
-
+rm MAD.txt monthMedians.txt median.txt outputData.txt splitData.txt medianMADoutput.txt
 
 exit 0
