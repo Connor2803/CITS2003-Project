@@ -41,7 +41,7 @@ awk '
             # Check if the state is only letters, lowercase is accepted
             if (match($2, /^[[:alpha:]]{2}$/)) {
 
-                # Check if the individuals affected is only numeric
+                # Check if the individuals affected is only numeric and positive
                 if ($3 ~ /^[0-9]+$/) {
 
                     # If the month starts with a 0, remove it
